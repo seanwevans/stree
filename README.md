@@ -21,24 +21,94 @@ cpan install Digest::SHA Term::ANSIColor Getopt::Long::Descriptive Cpanel::JSON:
 ```bash
 stree [options] [directory]
 ```
-Examples:
-```bash
-stree -a -D -s /var/log
-stree -J -o tree.json ~/Documents
-stree --xml --output listing.xml /etc
-```
 
 ## Options
-- `-a, --all` – Show hidden files.
-- `-D, --date` – Print modification dates.
-- `-s, --size` – Display file sizes.
-- `-J, --json` – Export tree as JSON.
-- `-C, --csv` – Export as CSV.
-- `-X, --xml` – Export as XML.
-- `-H, --html` – Export as HTML.
-- `-Y, --yaml` – Export as YAML.
-- `-f, --full` – Print full paths.
-- `-L, --max-depth=N` – Limit depth to N levels.
 
-Run `stree --help` for the full list of options.
+### General Options
+- `-?`, `--help`            : Prints the help information and exits.
+- `--[no-]version`          : Prints the version information and exits.
 
+### Display Options
+- `-a`, `--all`             : Show all files, including hidden ones.
+- `-f`, `--full`            : Print the full path prefix for each file.
+- `-F`, `--suffix`          : Print custom type indicators.
+- `-Q`, `--quotes`          : Quote filenames in double quotes.
+- `-q`, `--question-marks`  : Replace non-printable characters in filenames with question marks.
+
+### Sorting Options
+- `-b`, `--dirs-first`      : List directories before files.
+- `-B`, `--files-first`     : List files before directories.
+- `-r`, `--reverse`         : Sort the output in reverse order.
+- `-t`, `--time`            : Sort by last modification time.
+- `-c`, `--status`          : Sort by last status change time.
+- `-V`, `--sort-version`    : Sort by version numbers.
+- `-U`, `--no-sort`         : Disable sorting; output order is arbitrary.
+
+### Filtering Options
+- `-d`, `--dirs`            : List directories only.
+- `-P`, `--pattern STR`     : List only files matching a pattern (supports PCRE).
+- `-I`, `--ignore STR`      : Exclude files matching a pattern (supports PCRE).
+- `-R`, `--ignore-case`     : Ignore case when matching patterns.
+- `-G`, `--gitignore`       : Use `.gitignore` files for filtering.
+- `-E`, `--prune`           : Do not display empty directories.
+
+### Depth and Recursion
+- `-L INT`, `--max-depth INT` : Limit recursion depth.
+- `-x`, `--xdev`             : Stay on the current filesystem.
+- `-l`, `--links`            : Follow symbolic links that point to directories.
+
+### Metadata Display
+- `-s`, `--size`            : Show file sizes.
+- `-D`, `--date`            : Show last modification date.
+- `-e`, `--device`          : Show device number of files.
+- `-g`, `--group`           : Show file group name or GID.
+- `-u`, `--user`            : Show file owner or UID.
+- `-p`, `--permissions`     : Show file permissions.
+- `-n`, `--inodes`          : Show inode numbers.
+- `-j`, `--hash`            : Compute and display SHA256 hash.
+- `-h INT`, `--partial INT` : Use only the first `INT` bytes for hashing.
+
+### Alternative Input
+- `-A STR`, `--from-file STR` : Read directory listing from a file.
+
+### Output Formatting
+- `-C`, `--csv`             : Output as CSV.
+- `-J`, `--json`            : Output as JSON.
+- `-H`, `--html`            : Output as HTML.
+- `-M`, `--markdown`        : Output as Markdown.
+- `-X`, `--xml`             : Output as XML.
+- `-Y`, `--yaml`            : Output as YAML.
+- `-o STR`, `--output STR`  : Write output to a file.
+- `-i`, `--no-indent`       : Remove indentation (useful with `-f`, `-J`, or `-x`).
+
+## Examples
+
+### Print a directory tree with all files
+```sh
+./stree -a /path/to/directory
+```
+
+### List only directories, sorted by modification time
+```sh
+./stree -d -t /path/to/directory
+```
+
+### Export directory structure to JSON
+```sh
+./stree --json -o tree.json /path/to/directory
+```
+
+### Limit recursion depth to 3 levels
+```sh
+./stree -L 3 /path/to/directory
+```
+
+### Filter files using a pattern (show only `.txt` files)
+```sh
+./stree -P "*.txt" /path/to/directory
+```
+
+### Ignore files that match a pattern (hide `.log` files)
+```sh
+./stree -I "*.log" /path/to/directory
+```
