@@ -29,7 +29,7 @@ use XML::Writer;
 $Term::ANSIColor::AUTORESET = 1;
 
 our $AUTHOR  = "Sean Evans";
-our $VERSION = "0.1.0";
+our $VERSION = "0.1.1";
 
 my ($opt, $usage) = describe_options(
   "$0 (v$VERSION) %o [directory]",
@@ -152,7 +152,7 @@ sub human_readable_size {
 sub suffix {
   my $ret = '';
 
-  for (keys %sufs) { 
+  for (keys %sufs) {
     $ret .= $sufs{$_} if eval "-$_ \$_[0]";
   }
 
@@ -236,7 +236,7 @@ sub csv {
 
 
 sub html {
-  my ($files_ref, $output, $title) = @_;  
+  my ($files_ref, $output, $title) = @_;
   $title //= 'Directory Listing';
   my $html = HTML::Tiny->new;
 
@@ -367,7 +367,7 @@ sub wanted {
 
   $num_files++ if -f $entry;
   $num_dirs++ if -d $entry;
-  
+
   # default
   return if ($entry eq '.' or $entry eq '..');
   my $stat = lstat($entry) or return;
@@ -409,11 +409,11 @@ sub wanted {
 
   # --csv, --json, --xml, --markdown, --html, --yaml
   if ($opt->csv || $opt->json || $opt->xml || $opt->yaml || $opt->html || $opt->markdown) {
-    push @files, ($opt->full ? $full_path : $entry) 
+    push @files, ($opt->full ? $full_path : $entry)
   }
 
   # indentation
-  my $parent_prefix = $prefix_for_dir{$dir} // '';
+  my $parent_prefix = $prefix_for_dir{File::Spec->rel2abs($dir)} // '';
   my $count = $children_count{$dir} // 1;
   my $is_last = ($child_index{$dir}++ == $count - 1);
 
@@ -440,7 +440,7 @@ sub wanted {
 
   # --hash
   my $hash_digest;
-  if ($opt->hash) {    
+  if ($opt->hash) {
     $hash_digest = do {
       if (open my $fin, '<:raw', $entry) {
         my $buffer = '';
@@ -459,8 +459,14 @@ sub wanted {
   }
 
   # --no-indent
-  $prefix_for_dir{$full_path} = $parent_prefix . ($is_last ? '    ' : '│   ')
-    if -d _ && !$opt->no_indent;
+  # Set proper prefix for subdirectories
+  if (-d _) {
+    if ($opt->no_indent) {
+        $prefix_for_dir{$full_path} = '';
+    } else {
+        $prefix_for_dir{$full_path} = $parent_prefix . ($is_last ? '    ' : '│   ');
+    }
+  }
 
   say $output format_output($use_color, (
     prefix => $prefix,
