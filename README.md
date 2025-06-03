@@ -2,6 +2,8 @@
 
 **Stree** is an enhanced directory tree visualization tool for Unix-like systems, providing more control, formatting options, and output formats compared to the traditional `tree` command. It allows you to inspect directories with various filters, color-coded output, and export options in multiple formats such as JSON, CSV, XML, HTML, and YAML.
 
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
 ## Features
 - 📁 **Flexible File Listing** – List files, directories, or both, with options to sort by name, time, status, or version.
 - 🌳 **Customizable Output** – Control indentation, colors, and file path display. Print metadata like permissions, ownership, size, and modification dates.
@@ -112,3 +114,8 @@ stree [options] [directory]
 ```sh
 ./stree -I "*.log" /path/to/directory
 ```
+
+## License
+
+This project is distributed under the [MIT License](LICENSE).
+
