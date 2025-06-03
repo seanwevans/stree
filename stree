@@ -98,8 +98,6 @@ my @files;
 my @fromfile_dirs;
 my @units = qw(B KB MB GB TB PB EB ZB YB RB QB);
 my @field_order = qw(prefix inode device perms user group   date size  path suffix hash);
-my @color_order =   (WHITE  BLUE  YELLOW GREEN RED  MAGENTA CYAN WHITE RED  YELLOW WHITE);
-
 my @gitignore_patterns;
 
 my %seen_links;
