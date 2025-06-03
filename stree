@@ -12,7 +12,6 @@ use Fcntl qw(:mode);
 use File::Find;
 use File::Spec;
 use File::stat;
-use IO::File;
 use POSIX qw(strftime);
 use Term::ANSIColor qw(:constants);
 use User::grent;
@@ -86,7 +85,7 @@ if ($opt->version) { say "$0 v$VERSION"; exit }
 my $dir = shift || '.';
 die "$!\n" unless -d $dir && -r $dir;
 
-my $output = *STDOUT;
+my $output = \*STDOUT;
 my $current_depth = 0;
 my $log1024 = log(1024);
 my $partial_size = $opt->partial || 256;
@@ -265,10 +264,9 @@ sub markdown {
 
 
 sub xml {
-  my ($files_ref, $output_file) = @_;
+  my ($files_ref, $output) = @_;
   my @files = @$files_ref;
 
-  my $output = IO::File->new(">$output_file") or die "$!\n";
   my $writer = XML::Writer->new(OUTPUT => $output, DATA_MODE => 1, DATA_INDENT => 2);
 
   $writer->xmlDecl("UTF-8");
@@ -297,9 +295,6 @@ sub xml {
 
   $writer->endTag("filesystem");
   $writer->end();
-  $output->close();
-
-  say "XML written to $output_file";
 }
 
 
