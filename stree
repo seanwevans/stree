@@ -102,6 +102,15 @@ my @color_order =   (WHITE  BLUE  YELLOW GREEN RED  MAGENTA CYAN WHITE RED  YELL
 
 my @gitignore_patterns;
 
+# Precompile patterns for faster matching and to support case-insensitive
+# searches when -R is supplied with -P or -I.
+my $pattern_re = defined $opt->pattern
+  ? ($opt->ignore_case ? qr/$opt->pattern/i : qr/$opt->pattern/)
+  : undef;
+my $ignore_re  = defined $opt->ignore
+  ? ($opt->ignore_case ? qr/$opt->ignore/i  : qr/$opt->ignore/)
+  : undef;
+
 my %seen_links;
 my %children_count;
 my %child_index;
@@ -178,9 +187,8 @@ sub preprocess {
   }
 
   # --ignorecase
-  if ($opt->ignore_case) {
-    @entries = map { lc } @entries;
-  }
+  # Directory entries should not be modified.  Case-insensitive matching is
+  # handled by the regex itself when -R is used with -P or -I.
 
   # --dirs
   if ($opt->dirs) {
@@ -391,10 +399,10 @@ sub wanted {
   return if $opt->xdev && $stat->dev != $starting_dev;
 
   # --pattern
-  return if $opt->pattern && $entry !~ /$opt->pattern/;
+  return if defined $pattern_re && $entry !~ $pattern_re;
 
   # --ignore
-  return if $opt->ignore && $entry =~ /$opt->ignore/;
+  return if defined $ignore_re && $entry =~ $ignore_re;
 
   # --questionmark
   $entry =~ s/[^[:print:]]/?/g if $opt->question_marks;
