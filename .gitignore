@@ -1,1 +1,14 @@
 *.bak
+# Editor temporary files
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
+# System files
+.DS_Store
+Thumbs.db
+# Logs and coverage reports
+*.log
+coverage/
+coverage.*
