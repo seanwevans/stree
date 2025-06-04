@@ -30,7 +30,7 @@ $Term::ANSIColor::AUTORESET = 1;
 our $AUTHOR  = "Sean Evans";
 our $VERSION = "0.1.1";
 
-my ($opt, $usage) = describe_options(
+our ($opt, $usage) = describe_options(
   "$0 (v$VERSION) %o [directory]",
   [           'help|?',   "Prints the help information and exits." ],
   [        'version|!',   "Prints the version information and exits." ],
@@ -85,7 +85,7 @@ if ($opt->version) { say "$0 v$VERSION"; exit }
 my $dir = shift || '.';
 die "$!\n" unless -d $dir && -r $dir;
 
-my $output = \*STDOUT;
+our $output = \*STDOUT;
 my $current_depth = 0;
 my $log1024 = log(1024);
 my $partial_size = $opt->partial || 256;
@@ -485,6 +485,8 @@ sub wanted {
 }
 
 
+sub run
+{
 # --gitignore
 if ($opt->gitignore) {
   if (-e "$dir/.gitignore") {
@@ -538,3 +540,7 @@ close $output if $opt->output;
 
 say $output '';
 say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+
+}
+
+run() unless caller;

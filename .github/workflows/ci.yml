@@ -1,0 +1,18 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.38'
+      - name: Install dependencies
+        run: |
+          cpanm -n Cpanel::JSON::XS Getopt::Long::Descriptive HTML::Tiny Sort::Versions Text::CSV YAML::XS XML::Writer Test::More File::Temp
+      - name: Syntax check
+        run: perl -c stree
+      - name: Run tests
+        run: prove -l
