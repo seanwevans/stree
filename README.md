@@ -14,9 +14,11 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 - 🚧 **Xdev Support** – Restrict the search to a single filesystem, similar to `find -xdev`.
 
 ## Installation
-Ensure you have Perl 5.10 or later installed, along with the following Perl modules:
+Ensure you have Perl 5.10 or later installed.  The included
+`Makefile.PL` lists all required modules.  To install everything and the
+`stree` script run:
 ```bash
-cpan install Digest::SHA Term::ANSIColor Getopt::Long::Descriptive Cpanel::JSON::XS HTML::Tiny Text::CSV YAML::XS XML::Writer
+perl Makefile.PL && make install
 ```
 
 ## Usage
@@ -118,4 +120,6 @@ stree [options] [directory]
 ## License
 
 This project is distributed under the [MIT License](LICENSE).
+We are considering a CPAN release to make installation via `cpan`
+or `cpanm` even easier.
 
