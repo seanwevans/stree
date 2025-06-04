@@ -496,9 +496,8 @@ if ($opt->gitignore) {
 
 # --from-file
 if ($opt->from_file) {
-  local $/;
-  open my $fin, '<:encoding(UTF-8)', $opt->from_file or die "$!\n";
-  chomp(@fromfile_dirs = <$fin>);
+  open my $fin, '<:encoding(UTF-8)', $opt->from_file or die $!;
+  while (my $dir = <$fin>) { chomp $dir; push @fromfile_dirs, $dir; }
   close $fin;
 
   find({
