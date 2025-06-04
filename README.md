@@ -16,7 +16,8 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Installation
 Ensure you have Perl 5.10 or later installed, along with the following Perl modules:
 ```bash
-cpan install Digest::SHA Term::ANSIColor Getopt::Long::Descriptive Cpanel::JSON::XS HTML::Tiny Text::CSV YAML::XS XML::Writer
+cpan install Digest::SHA Term::ANSIColor Getopt::Long::Descriptive \
+  Cpanel::JSON::XS HTML::Tiny Text::CSV YAML::XS XML::Writer Parse::Gitignore
 ```
 
 ## Usage
