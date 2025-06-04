@@ -1,540 +1,65 @@
 #!/usr/bin/env perl
 
-# Stree - tree, but better.
-
-
 use v5.10;
 use strict;
 use warnings;
 
-use Digest::SHA qw(sha256_hex);
-use Fcntl qw(:mode);
-use File::Find;
-use File::Spec;
-use File::stat;
-use POSIX qw(strftime);
-use Term::ANSIColor qw(:constants);
-use User::grent;
-use User::pwent;
-
-use Cpanel::JSON::XS;
+use FindBin;
+use lib "$FindBin::Bin/lib";
 use Getopt::Long::Descriptive;
-use HTML::Tiny;
-use Sort::Versions;
-use Text::CSV;
-use YAML::XS;
-use XML::Writer;
+use Stree;
 
-$Term::ANSIColor::AUTORESET = 1;
-
-our $AUTHOR  = "Sean Evans";
-our $VERSION = "0.1.1";
+our $VERSION = '0.1.1';
 
 my ($opt, $usage) = describe_options(
   "$0 (v$VERSION) %o [directory]",
-  [           'help|?',   "Prints the help information and exits." ],
-  [        'version|!',   "Prints the version information and exits." ],
-
-  [            'all|a',   "Print all files, even hidden ones." ],
-  [      'from-file|A=s', "Read a directory listing from file rather than the CLI. Takes a path to a file containing one directory per line." ],
-  [     'dirs-first|b',   "List directories before files." ],
-  [    'files-first|B',   "List files before directories." ],
-  [         'status|c',   "Sort the output by last status change. Modifies the -D option to print the last status change instead of modification time." ],
-  [            'csv|C',   "Output the directory tree as a CSV formatted file." ],
-  [           'dirs|d',   "List directories only." ],
-  [           'date|D',   "Print the date of the last modification time or if -c is used, the last status change time for the file listed." ],
-  [         'device|e',   "Print the device number to which the file or directory belongs." ],
-  [          'prune|E',   "Do not print empty directories." ],
-  [           'full|f',   "Print the full path prefix for each file." ],
-  [         'suffix|F',   "Print custom type indicators" ],
-  [          'group|g',   "Print the group name, or GID # if no group name is available, of the file." ],
-  [      'gitignore|G',   "Use git .gitignore files for filtering files and directories.  Also uses \$GIT_DIR/info/exclude if present." ],
-  [        'partial|h=i', "Use first number of bytes for hashing instead of the whole file.", { default => 256 } ],
-  [           'html|H',   "Outputs the directory tree as an HTML formatted file." ],
-  [      'no-indent|i',   "Do not indent lines. Useful when used in conjunction with the -f option. Removes as much whitespace as possible when used with -J or -x." ],
-  [         'ignore|I=s', "Do not list files which match the wild-card pattern. Accepts any valid PCRE" ],
-  [           'hash|j',   "Print SHA256 hash for each file." ],
-  [           'json|J',   "Output the directory tree as a JSON formatted file." ],
-  [          'links|l',   "Follow symbolic links if they point to directories, as if they were directories." ],
-  [      'max-depth|L=i', "Recurse a maximum of this many layers deep in the directory tree.", { default => 256 } ],
-  [       'markdown|M',   "Outputs the directory tree as a markdown formatted file." ],
-  [         'inodes|n',   "Print the inode number of the file or directory." ],
-  [         'output|o=s', "Send output to file." ],
-  [    'permissions|p',   "Print the permissions for each file." ],
-  [        'pattern|P=s', "List only files which match the wild-card pattern. Accepts any valid PCRE." ],
-  [ 'question-marks|q',   "Print non-printable characters in filenames as question marks instead of the default." ],
-  [         'quotes|Q',   "Quote the names of files in double quotes." ],
-  [        'reverse|r',   "Sort the output in reverse order." ],
-  [    'ignore-case|R',   "Used with the -P or -I options to cause the pattern to match without regards to case." ],
-  [           'size|s',   "Print the size of each file." ],
-  [           'time|t',   "Sort the output by last modification time instead of alphabetically." ],
-  [           'user|u',   "Print the username, or UID # if no username is available, of the file." ],
-  [        'no-sort|U',   "Do not sort. You get what you get." ],
-  [   'sort-version|V',   "Sort the output by version numbers instead of numerically." ],
-  [           'xdev|x',   "Search only on the current file-system (like `find -xdev`)." ],
-  [            'xml|X',   "Outputs the directory tree as an XML formatted file." ],
-  [           'yaml|Y',   "Outputs the directory tree as an YAML formatted file." ],
+  [ 'help|?',           "Prints the help information and exits." ],
+  [ 'version|!',        "Prints the version information and exits." ],
+  [ 'all|a',            "Print all files, even hidden ones." ],
+  [ 'from-file|A=s',    "Read directories from file." ],
+  [ 'dirs-first|b',     "List directories before files." ],
+  [ 'files-first|B',    "List files before directories." ],
+  [ 'status|c',         "Sort by status change." ],
+  [ 'csv|C',            "Output as CSV." ],
+  [ 'dirs|d',           "List directories only." ],
+  [ 'date|D',           "Print modification date." ],
+  [ 'device|e',         "Print device number." ],
+  [ 'prune|E',          "Do not print empty directories." ],
+  [ 'full|f',           "Print full path prefix." ],
+  [ 'suffix|F',         "Print custom type indicators" ],
+  [ 'group|g',          "Print group name." ],
+  [ 'gitignore|G',      "Use gitignore files." ],
+  [ 'partial|h=i',      "Use first N bytes for hashing", { default => 256 } ],
+  [ 'html|H',           "Output as HTML." ],
+  [ 'no-indent|i',      "Do not indent lines." ],
+  [ 'ignore|I=s',       "Ignore pattern." ],
+  [ 'hash|j',           "Print SHA256 hash." ],
+  [ 'json|J',           "Output as JSON." ],
+  [ 'links|l',          "Follow symlinks." ],
+  [ 'max-depth|L=i',    "Maximum depth", { default => 256 } ],
+  [ 'markdown|M',       "Output as markdown." ],
+  [ 'inodes|n',         "Print inode numbers." ],
+  [ 'output|o=s',       "Send output to file." ],
+  [ 'permissions|p',    "Print permissions." ],
+  [ 'pattern|P=s',      "List only files matching pattern." ],
+  [ 'question-marks|q', "Show non-printable as ?" ],
+  [ 'quotes|Q',         "Quote file names." ],
+  [ 'reverse|r',        "Reverse sort order." ],
+  [ 'ignore-case|R',    "Case-insensitive matching." ],
+  [ 'size|s',           "Print file size." ],
+  [ 'time|t',           "Sort by modification time." ],
+  [ 'user|u',           "Print user name." ],
+  [ 'no-sort|U',        "Do not sort." ],
+  [ 'sort-version|V',   "Version number sort." ],
+  [ 'xdev|x',           "Stay on current filesystem." ],
+  [ 'xml|X',            "Output as XML." ],
+  [ 'yaml|Y',           "Output as YAML." ],
 );
 
-# --help
-if ($opt->help)  { say $usage->text; exit }
-
-# --version
+if ($opt->help)    { say $usage->text; exit }
 if ($opt->version) { say "$0 v$VERSION"; exit }
 
 my $dir = shift || '.';
-die "$!\n" unless -d $dir && -r $dir;
 
-my $output = \*STDOUT;
-my $current_depth = 0;
-my $log1024 = log(1024);
-my $partial_size = $opt->partial || 256;
-my $starting_dev = $opt->xdev ? (lstat($dir))->dev : '';
-my $num_files = 0;
-my $num_dirs = 0;
-
-my @files;
-my @fromfile_dirs;
-my @units = qw(B KB MB GB TB PB EB ZB YB RB QB);
-my @field_order = qw(prefix inode device perms user group   date size  path suffix hash);
-my @gitignore_patterns;
-
-# Precompile patterns for faster matching and to support case-insensitive
-# searches when -R is supplied with -P or -I.
-my $pattern_re = defined $opt->pattern
-  ? ($opt->ignore_case ? qr/$opt->pattern/i : qr/$opt->pattern/)
-  : undef;
-my $ignore_re  = defined $opt->ignore
-  ? ($opt->ignore_case ? qr/$opt->ignore/i  : qr/$opt->ignore/)
-  : undef;
-
-my %seen_links;
-my %children_count;
-my %child_index;
-my %prefix_for_dir;
-
-my $sk = 'rwxoRWXOezsfdlpSbctugkTB';
-my $sv = '<>*!{}#^"-%./$|=@+:~`&[]';
-my %sufs = map { substr($sk, $_, 1) => substr($sv, $_, 1) } 0 .. length($sk)-1;
-
-my %colors = (
-  prefix => (BOLD WHITE),
-  inode  => BLUE,       # -n
-  device => YELLOW,     # -e
-  perms  => GREEN,      # -p
-  user   => RED,        # -u
-  group  => MAGENTA,    # -g
-  date   => CYAN,       # -D
-  size   => WHITE,      # -s
-  path   => GREEN,
-  suffix => YELLOW,     # -F
-  hash   => WHITE,      # -j
-);
-
-# --from-file
-if ($opt->from_file) {
-  die "Cannot read fromfile: $!\n" unless -r $opt->from_file;
-}
-
-# --output
-if ($opt->output) {
-  open $output, '>:encoding(UTF-8)', $opt->output or die "$!\n"
-}
-
-# only use color for tty output;
-my $use_color = -t $output;
-
-
-sub human_readable_size {
-  return "0 B" unless $_[0];
-
-  my $p = int(log($_[0])/$log1024);
-  $p = $#units if $p > $#units;
-
-  return sprintf("%.1f %s", $_[0] / (1024 ** $p), $units[$p]);
-}
-
-
-sub suffix {
-  my $ret = '';
-
-  for (keys %sufs) {
-    $ret .= $sufs{$_} if eval "-$_ \$_[0]";
-  }
-
-  return $ret;
-}
-
-
-sub preprocess {
-  my @entries = @_;
-
-  # --max-depth
-  return () if $current_depth > $opt->max_depth;
-
-  # filter out '.' and '..'
-  @entries = grep { $_ ne '.' && $_ ne '..' } @entries;
-
-  # --all
-  @entries = grep { !/^\./ } @entries unless $opt->all;
-
-  # --prune
-  if ($opt->prune) {
-    @entries = grep { -s "$File::Find::dir/$_" || -d "$File::Find::dir/$_" } @entries;
-  }
-
-  # --ignorecase
-  # Directory entries should not be modified.  Case-insensitive matching is
-  # handled by the regex itself when -R is used with -P or -I.
-
-  # --dirs
-  if ($opt->dirs) {
-    @entries = grep { -d "$File::Find::dir/$_" } @entries;
-  }
-
-  # --nosort
-  unless ($opt->no_sort) {
-    # --dirsfirst
-    if ($opt->dirs_first) {
-      @entries = sort { (-d "$File::Find::dir/$b") <=> (-d "$File::Find::dir/$a") } @entries;
-    }
-    # --filesfirst
-    elsif ($opt->files_first) {
-      @entries = sort { (-f "$File::Find::dir/$b") <=> (-f "$File::Find::dir/$a") } @entries;
-    }
-    # --sort-version
-    elsif ($opt->sort_version) {
-      @entries = sort { versioncmp($a, $b) } @entries;
-    }
-    # --time
-    elsif ($opt->time) {
-      @entries = sort { (lstat($b)->mtime) <=> (lstat($a)->mtime) } @entries;
-    }
-    # --status
-    elsif ($opt->status) {
-      @entries = sort { (lstat($b)->ctime) <=> (lstat($a)->ctime) } @entries;
-    }
-  }
-
-  # --reverse
-  @entries = reverse @entries if $opt->reverse;
-
-  $children_count{$File::Find::dir} = scalar(@entries);
-  $child_index{$File::Find::dir} = 0;
-  $prefix_for_dir{$File::Find::dir} //= '';
-  $current_depth++;
-
-  return @entries;
-}
-
-
-sub postprocess {
-  $current_depth-- if $current_depth > 0;
-}
-
-
-sub csv {
-  my ($files_ref, $output) = @_;
-  my $csv = Text::CSV->new({ binary => 1, eol => "\n" });
-  $csv->say($output, [$_]) for @$files_ref;
-}
-
-
-sub html {
-  my ($files_ref, $output, $title) = @_;
-  $title //= 'Directory Listing';
-  my $html = HTML::Tiny->new;
-
-  say $output $html->html([
-    $html->head($html->title($title)),
-    $html->body([
-      $html->h1($title),
-      $html->ul([
-        map { $html->li($_) } @$files_ref
-      ])
-    ])
-  ]);
-}
-
-
-sub json {
-  my ($files_ref, $output) = @_;
-  say $output encode_json($files_ref);
-}
-
-
-sub markdown {
-  my ($files_ref, $output) = @_;
-  say $output "- $_" for @$files_ref;
-}
-
-
-sub xml {
-  my ($files_ref, $output) = @_;
-  my @files = @$files_ref;
-
-  my $writer = XML::Writer->new(OUTPUT => $output, DATA_MODE => 1, DATA_INDENT => 2);
-
-  $writer->xmlDecl("UTF-8");
-  $writer->startTag("filesystem");
-
-  foreach my $file (@files) {
-    my $stat = lstat($file);
-    next unless $stat;
-
-    my $perms = sprintf("%04o", $stat->mode & 07777);
-    my $owner = getpwuid($stat->uid) // $stat->uid;
-    my $group = getgrgid($stat->gid) // $stat->gid;
-    my $size = $stat->size;
-    my $type = -d $file ? "directory" : "file";
-
-    $writer->startTag($type,
-      name  => $file,
-      size  => $size,
-      owner => $owner,
-      group => $group,
-      perms => $perms,
-      modified => strftime("%Y-%m-%dT%H:%M:%S", localtime($stat->mtime))
-    );
-    $writer->endTag($type);
-  }
-
-  $writer->endTag("filesystem");
-  $writer->end();
-}
-
-
-sub yaml {
-  my ($files_ref, $output) = @_;
-  say $output Dump($files_ref);
-}
-
-
-sub format_output {
-  my ($use_colors, %fields) = @_;
-
-  my @output;
-  for my $field (@field_order) {
-    next unless defined $fields{$field};
-    if ($use_colors) {
-      push @output, $colors{$field}, $fields{$field};
-    } else {
-      push @output, $fields{$field};
-    }
-  }
-
-  return @output;
-}
-
-
-sub format_permissions {
-  my $mode = shift;
-
-  my $type = '-';
-  $type = 'd' if S_ISDIR($mode);
-  $type = 'l' if S_ISLNK($mode);
-  $type = 'c' if S_ISCHR($mode);
-  $type = 'b' if S_ISBLK($mode);
-  $type = 'p' if S_ISFIFO($mode);
-  $type = 's' if S_ISSOCK($mode);
-
-  my $perms = '';
-  my @perm_bits = qw(r w x);
-
-  for my $i (0..2) {
-    my $shift = 6 - 3 * $i;
-    my $bitmask = ($mode >> $shift) & 7;
-    for my $j (0..2) {
-      $perms .= ($bitmask & (1 << (2 - $j))) ? $perm_bits[$j] : '-';
-    }
-  }
-
-  my $special = $mode & 07000;
-
-  # Special permissions
-  substr($perms, 2, 1, 's') if $special & 04000;  # setuid
-  substr($perms, 5, 1, 's') if $special & 02000;  # setgid
-  substr($perms, 8, 1, 't') if $special & 01000;  # sticky
-
-  return $type . $perms;
-}
-
-
-sub wanted {
-  my $entry = $_;
-  my $dir = $File::Find::dir;
-  my $full_path = File::Spec->rel2abs($File::Find::name);
-  my (undef, undef, $filename) = File::Spec->splitpath($full_path);
-
-  $num_files++ if -f $entry;
-  $num_dirs++ if -d $entry;
-
-  # default
-  return if ($entry eq '.' or $entry eq '..');
-  my $stat = lstat($entry) or return;
-
-  # --link
-  if ($opt->links && -l $entry) {
-    return if $seen_links{File::Spec->rel2abs($entry)}++;
-    my $link_target = File::Spec->rel2abs(readlink($entry), $dir);
-    if (-d $link_target) {
-      find({
-        wanted    => \&wanted,
-        preprocess  => \&preprocess,
-        postprocess => \&postprocess,
-        no_chdir  => 1
-      }, $link_target);
-    }
-  }
-
-
-  # --xdev
-  return if $opt->xdev && $stat->dev != $starting_dev;
-
-  # --pattern
-  return if defined $pattern_re && $entry !~ $pattern_re;
-
-  # --ignore
-  return if defined $ignore_re && $entry =~ $ignore_re;
-
-  # --questionmark
-  $entry =~ s/[^[:print:]]/?/g if $opt->question_marks;
-
-  # --quotes
-  $entry = qq{"$entry"} if $opt->quotes;
-
-  # --gitignore
-  for my $pattern (@gitignore_patterns) {
-    return if $full_path =~ /$pattern/;
-  }
-
-  # --csv, --json, --xml, --markdown, --html, --yaml
-  if ($opt->csv || $opt->json || $opt->xml || $opt->yaml || $opt->html || $opt->markdown) {
-    push @files, ($opt->full ? $full_path : $entry)
-  }
-
-  # indentation
-  my $parent_prefix = $prefix_for_dir{File::Spec->rel2abs($dir)} // '';
-  my $count = $children_count{$dir} // 1;
-  my $is_last = ($child_index{$dir}++ == $count - 1);
-
-  my $connector;
-  my $prefix;
-  if ($opt->no_indent) {
-    $connector = '';
-    $prefix = '';
-  } else {
-    $connector = $is_last ? '└── ' : '├── ';
-    $prefix = $parent_prefix . $connector;
-  }
-
-  # metadata
-  my $inode = $opt->inodes ? $stat->ino . ' ' : '';
-  my $device = $opt->device ? $stat->dev . ' ' : '';
-  my $perms = $opt->permissions ? format_permissions($stat->mode) . ' ' : '';
-  my $user = $opt->user ? getpwuid($stat->uid)->[0] . ' ' : '' ;
-  my $group = $opt->group ? getgrgid($stat->gid)->[0] . ' ' : '';
-  my $date = $opt->date ? strftime("%Y-%m-%d %H:%M:%S", localtime($stat->mtime)) . ' '  : '' ;
-  my $size = $opt->size ? human_readable_size($stat->size) . ' ' : '';
-  my $dpath = $opt->full ? $full_path . ' ' : $filename . ' ';
-  my $suffix = $opt->suffix ? suffix($entry) . ' ' : '';
-
-  # --hash
-  my $hash_digest;
-  if ($opt->hash) {
-    $hash_digest = do {
-      if (open my $fin, '<:raw', $entry) {
-        my $buffer = '';
-        if ($opt->partial) {
-          read($fin, $buffer, $partial_size) or $buffer = '';
-        } else {
-          local $/;
-          $buffer = <$fin> // '';
-        }
-        close $fin;
-        sha256_hex($buffer);
-      } else {
-        '0' x 64;
-      }
-    };
-  }
-
-  # --no-indent
-  # Set proper prefix for subdirectories
-  if (-d _) {
-    if ($opt->no_indent) {
-        $prefix_for_dir{$full_path} = '';
-    } else {
-        $prefix_for_dir{$full_path} = $parent_prefix . ($is_last ? '    ' : '│   ');
-    }
-  }
-
-  say $output format_output($use_color, (
-    prefix => $prefix,
-    inode  => $inode,
-    device => $device,
-    perms  => $perms,
-    user   => $user,
-    group  => $group,
-    date   => $date,
-    size   => $size,
-    path   => $dpath,
-    suffix => $suffix,
-    hash   => $hash_digest,
-  ));
-}
-
-
-# --gitignore
-if ($opt->gitignore) {
-  if (-e "$dir/.gitignore") {
-    open my $fh, '<:encoding(UTF-8)', "$dir/.gitignore" or die "$!\n";
-    chomp(@gitignore_patterns = <$fh>);
-    close $fh;
-  }
-}
-
-# --from-file
-if ($opt->from_file) {
-  local $/;
-  open my $fin, '<:encoding(UTF-8)', $opt->from_file or die "$!\n";
-  chomp(@fromfile_dirs = <$fin>);
-  close $fin;
-
-  find({
-    wanted => \&wanted,
-    preprocess => \&preprocess,
-    postprocess => \&postprocess,
-    no_chdir => 1 }, @fromfile_dirs);
-}
-else {
-  say $output BLUE ON_GREEN $dir;
-  find({
-    wanted => \&wanted,
-    preprocess => \&preprocess,
-    postprocess => \&postprocess,
-    no_chdir => 1 }, $dir);
-}
-
-# --csv
-csv(\@files, $output) if $opt->csv;
-
-# --html
-html(\@files, $output) if $opt->html;
-
-# --json
-json(\@files, $output) if $opt->json;
-
-# --markdown
-markdown(\@files, $output) if $opt->markdown;
-
-# --xml
-xml(\@files, $output) if $opt->xml;
-
-# --yaml
-yaml(\@files, $output) if $opt->yaml;
-
-close $output if $opt->output;
-
-say $output '';
-say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+my $stree = Stree->new($opt);
+$stree->run($dir);
