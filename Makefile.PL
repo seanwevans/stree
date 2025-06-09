@@ -1,0 +1,27 @@
+use ExtUtils::MakeMaker;
+WriteMakefile(
+    NAME         => 'stree',
+    VERSION      => '0.1.1',
+    PREREQ_PM    => {
+        'Digest::SHA'              => 0,
+        'Fcntl'                    => 0,
+        'File::Find'               => 0,
+        'File::Spec'               => 0,
+        'File::stat'               => 0,
+        'POSIX'                    => 0,
+        'Term::ANSIColor'          => 0,
+        'User::grent'              => 0,
+        'User::pwent'              => 0,
+        'Cpanel::JSON::XS'         => 0,
+        'Getopt::Long::Descriptive'=> 0,
+        'HTML::Tiny'               => 0,
+        'Sort::Versions'           => 0,
+        'Text::CSV'                => 0,
+        'YAML::XS'                 => 0,
+        'XML::Writer'              => 0,
+    },
+    EXE_FILES    => ['stree'],
+    LICENSE      => 'mit',
+    AUTHOR       => 'Sean Evans <sean.w.evans@gmail.com>',
+    ABSTRACT     => 'A better tree command',
+);
