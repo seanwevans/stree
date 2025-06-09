@@ -18,6 +18,7 @@ use User::grent;
 use User::pwent;
 
 use Cpanel::JSON::XS;
+use Parse::Gitignore;
 use Getopt::Long::Descriptive;
 use HTML::Tiny;
 use Sort::Versions;
@@ -30,7 +31,7 @@ $Term::ANSIColor::AUTORESET = 1;
 our $AUTHOR  = "Sean Evans";
 our $VERSION = "0.1.1";
 
-my ($opt, $usage) = describe_options(
+our ($opt, $usage) = describe_options(
   "$0 (v$VERSION) %o [directory]",
   [           'help|?',   "Prints the help information and exits." ],
   [        'version|!',   "Prints the version information and exits." ],
@@ -85,7 +86,7 @@ if ($opt->version) { say "$0 v$VERSION"; exit }
 my $dir = shift || '.';
 die "$!\n" unless -d $dir && -r $dir;
 
-my $output = \*STDOUT;
+our $output = \*STDOUT;
 my $current_depth = 0;
 my $log1024 = log(1024);
 my $partial_size = $opt->partial || 256;
@@ -97,7 +98,7 @@ my @files;
 my @fromfile_dirs;
 my @units = qw(B KB MB GB TB PB EB ZB YB RB QB);
 my @field_order = qw(prefix inode device perms user group   date size  path suffix hash);
-my @gitignore_patterns;
+my $gitignore;
 
 # Precompile patterns for faster matching and to support case-insensitive
 # searches when -R is supplied with -P or -I.
@@ -404,9 +405,7 @@ sub wanted {
   $entry = qq{"$entry"} if $opt->quotes;
 
   # --gitignore
-  for my $pattern (@gitignore_patterns) {
-    return if $full_path =~ /$pattern/;
-  }
+  return if defined $gitignore && $gitignore->ignored($full_path);
 
   # --csv, --json, --xml, --markdown, --html, --yaml
   if ($opt->csv || $opt->json || $opt->xml || $opt->yaml || $opt->html || $opt->markdown) {
@@ -485,20 +484,21 @@ sub wanted {
 }
 
 
+sub run
+{
 # --gitignore
 if ($opt->gitignore) {
-  if (-e "$dir/.gitignore") {
-    open my $fh, '<:encoding(UTF-8)', "$dir/.gitignore" or die "$!\n";
-    chomp(@gitignore_patterns = <$fh>);
-    close $fh;
+  $gitignore = Parse::Gitignore->new();
+  $gitignore->read_gitignore("$dir/.gitignore") if -e "$dir/.gitignore";
+  if (my $git_dir = $ENV{GIT_DIR} // "$dir/.git") {
+    $gitignore->read_gitignore("$git_dir/info/exclude") if -e "$git_dir/info/exclude";
   }
 }
 
 # --from-file
 if ($opt->from_file) {
-  local $/;
-  open my $fin, '<:encoding(UTF-8)', $opt->from_file or die "$!\n";
-  chomp(@fromfile_dirs = <$fin>);
+  open my $fin, '<:encoding(UTF-8)', $opt->from_file or die $!;
+  while (my $dir = <$fin>) { chomp $dir; push @fromfile_dirs, $dir; }
   close $fin;
 
   find({
@@ -538,3 +538,7 @@ close $output if $opt->output;
 
 say $output '';
 say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+
+}
+
+run() unless caller;
