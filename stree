@@ -536,8 +536,10 @@ yaml(\@files, $output) if $opt->yaml;
 
 close $output if $opt->output;
 
+my $dir_count = $num_dirs > 0 ? $num_dirs - 1 : 0;
+
 say $output '';
-say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+say $output BRIGHT_WHITE $dir_count, ' directories, ', $num_files, ' files';
 
 }
 
