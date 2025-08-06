@@ -536,7 +536,11 @@ if ($opt->from_file) {
     no_chdir => 1 }, @fromfile_dirs);
 }
 else {
-  say $output BLUE ON_GREEN $dir;
+  if ($use_color) {
+    say $output BLUE ON_GREEN $dir;
+  } else {
+    say $output $dir;
+  }
   find({
     wanted => \&wanted,
     preprocess => \&preprocess,
@@ -567,7 +571,12 @@ close $output if $opt->output;
 my $dir_count = $num_dirs > 0 ? $num_dirs - 1 : 0;
 
 say $output '';
-say $output BRIGHT_WHITE $dir_count, ' directories, ', $num_files, ' files';
+
+if ($use_color) {
+  say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+} else {
+  say $output $num_dirs-1, ' directories, ', $num_files, ' files';
+}
 
 }
 
