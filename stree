@@ -431,8 +431,16 @@ sub wanted {
   my $inode = $opt->inodes ? $stat->ino . ' ' : '';
   my $device = $opt->device ? $stat->dev . ' ' : '';
   my $perms = $opt->permissions ? format_permissions($stat->mode) . ' ' : '';
-  my $user = $opt->user ? getpwuid($stat->uid)->[0] . ' ' : '' ;
-  my $group = $opt->group ? getgrgid($stat->gid)->[0] . ' ' : '';
+  my $user = '';
+  if ($opt->user) {
+    my $pw = getpwuid($stat->uid);
+    $user = (($pw && $pw->name) // $stat->uid) . ' ';
+  }
+  my $group = '';
+  if ($opt->group) {
+    my $gr = getgrgid($stat->gid);
+    $group = (($gr && $gr->name) // $stat->gid) . ' ';
+  }
   my $date = $opt->date ? strftime("%Y-%m-%d %H:%M:%S", localtime($stat->mtime)) . ' '  : '' ;
   my $size = $opt->size ? human_readable_size($stat->size) . ' ' : '';
   my $dpath = $opt->full ? $full_path . ' ' : $filename . ' ';
