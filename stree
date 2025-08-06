@@ -508,7 +508,11 @@ if ($opt->from_file) {
     no_chdir => 1 }, @fromfile_dirs);
 }
 else {
-  say $output BLUE ON_GREEN $dir;
+  if ($use_color) {
+    say $output BLUE ON_GREEN $dir;
+  } else {
+    say $output $dir;
+  }
   find({
     wanted => \&wanted,
     preprocess => \&preprocess,
@@ -537,7 +541,11 @@ yaml(\@files, $output) if $opt->yaml;
 close $output if $opt->output;
 
 say $output '';
-say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+if ($use_color) {
+  say $output BRIGHT_WHITE $num_dirs-1, ' directories, ', $num_files, ' files';
+} else {
+  say $output $num_dirs-1, ' directories, ', $num_files, ' files';
+}
 
 }
 
