@@ -5,6 +5,10 @@ use FindBin;
 use File::Temp qw(tempdir tempfile);
 use Cpanel::JSON::XS qw(decode_json);
 
+BEGIN {
+    eval { require Parse::Gitignore; 1 } or plan skip_all => 'Parse::Gitignore module required';
+}
+
 local $SIG{__WARN__} = sub {};
 
 my $dir = tempdir(CLEANUP => 1);

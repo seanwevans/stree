@@ -18,13 +18,14 @@ use User::grent;
 use User::pwent;
 
 use Cpanel::JSON::XS;
-use Parse::Gitignore;
 use Getopt::Long::Descriptive;
 use HTML::Tiny;
 use Sort::Versions;
 use Text::CSV;
 use YAML::XS;
 use XML::Writer;
+
+my $has_parse_gitignore = eval { require Parse::Gitignore; 1 };
 
 $Term::ANSIColor::AUTORESET = 1;
 
@@ -524,6 +525,7 @@ sub run
 {
 # --gitignore
 if ($opt->gitignore) {
+  die "Parse::Gitignore module required for --gitignore option\n" unless $has_parse_gitignore;
   $gitignore = Parse::Gitignore->new();
   $gitignore->read_gitignore("$dir/.gitignore") if -e "$dir/.gitignore";
   if (my $git_dir = $ENV{GIT_DIR} // "$dir/.git") {
