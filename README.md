@@ -1,4 +1,5 @@
 # Stree - A Better Tree Command
+<img width="256" alt="Mystical Tree in Orange Haze" src="https://github.com/user-attachments/assets/280f0e6f-48dd-46da-8252-d173622555e4" />
 
 **Stree** is an enhanced directory tree visualization tool for Unix-like systems, providing more control, formatting options, and output formats compared to the traditional `tree` command. It allows you to inspect directories with various filters, color-coded output, and export options in multiple formats such as JSON, CSV, XML, HTML, and YAML.
 
