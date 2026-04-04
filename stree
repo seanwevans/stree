@@ -396,12 +396,12 @@ sub wanted {
   my $full_path = File::Spec->rel2abs($File::Find::name);
   my (undef, undef, $filename) = File::Spec->splitpath($full_path);
 
-  $num_files++ if -f $entry;
-  $num_dirs++ if -d $entry;
-
   # default
   return if ($entry eq '.' or $entry eq '..');
   my $stat = lstat($entry) or return;
+
+  $num_files++ if S_ISREG($stat->mode);
+  $num_dirs++ if S_ISDIR($stat->mode);
 
   # --link
   if ($opt->links && -l $entry) {
