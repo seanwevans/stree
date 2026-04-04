@@ -390,9 +390,15 @@ sub format_permissions {
   my $special = $mode & 07000;
 
   # Special permissions
-  substr($perms, 2, 1, 's') if $special & 04000;  # setuid
-  substr($perms, 5, 1, 's') if $special & 02000;  # setgid
-  substr($perms, 8, 1, 't') if $special & 01000;  # sticky
+  if ($special & 04000) {  # setuid
+    substr($perms, 2, 1, substr($perms, 2, 1) eq 'x' ? 's' : 'S');
+  }
+  if ($special & 02000) {  # setgid
+    substr($perms, 5, 1, substr($perms, 5, 1) eq 'x' ? 's' : 'S');
+  }
+  if ($special & 01000) {  # sticky
+    substr($perms, 8, 1, substr($perms, 8, 1) eq 'x' ? 't' : 'T');
+  }
 
   return $type . $perms;
 }
