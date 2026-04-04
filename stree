@@ -238,11 +238,19 @@ sub preprocess {
     }
     # --time
     elsif ($opt->time) {
-      @entries = sort { (lstat($b)->mtime) <=> (lstat($a)->mtime) } @entries;
+      @entries = sort {
+        my $b_stat = lstat("$File::Find::dir/$b");
+        my $a_stat = lstat("$File::Find::dir/$a");
+        ($b_stat ? $b_stat->mtime : 0) <=> ($a_stat ? $a_stat->mtime : 0)
+      } @entries;
     }
     # --status
     elsif ($opt->status) {
-      @entries = sort { (lstat($b)->ctime) <=> (lstat($a)->ctime) } @entries;
+      @entries = sort {
+        my $b_stat = lstat("$File::Find::dir/$b");
+        my $a_stat = lstat("$File::Find::dir/$a");
+        ($b_stat ? $b_stat->ctime : 0) <=> ($a_stat ? $a_stat->ctime : 0)
+      } @entries;
     }
   }
 
